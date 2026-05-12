@@ -232,10 +232,19 @@ function openScheduleModal(roomNum) {
 
   const select = document.getElementById("schedule-room");
   if (select) {
-    const list = rooms && rooms.length ? rooms : [];
-    const roomNums = list.length ? list.map((r) => r.n) : [1, 2, 3, 4, 5, 6];
+    const base = [1, 2, 3, 4, 5, 6];
+    const seen = new Set(base);
+    const fromApi = (rooms || [])
+      .map((r) => Number(r && r.n))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    for (const n of fromApi) seen.add(n);
+    const roomNums = Array.from(seen).sort((a, b) => a - b);
     select.innerHTML = roomNums
-      .map((n) => `<option value="${n}">Confab ${n}</option>`)
+      .map((n) => {
+        const r = (rooms || []).find((x) => Number(x.n) === Number(n));
+        const suffix = r && r.loc ? ` — ${escapeHtmlStaff(r.loc)}` : "";
+        return `<option value="${n}">Confab ${n}${suffix}</option>`;
+      })
       .join("");
   }
 

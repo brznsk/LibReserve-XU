@@ -42,22 +42,22 @@
   </div>
 
   <div class="stats-row">
-    <div class="stat-card">
+    <div class="stat-card stat-card--total">
       <div class="stat-label">Total requests</div>
       <div class="stat-val" id="stat-total">0</div>
       <div class="stat-sub">all time</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card stat-card--pending">
       <div class="stat-label">Pending</div>
       <div class="stat-val" id="stat-pending">0</div>
       <div class="stat-sub">awaiting action</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card stat-card--approved">
       <div class="stat-label">Approved</div>
       <div class="stat-val" id="stat-approved">0</div>
       <div class="stat-sub">confirmed</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card stat-card--rejected">
       <div class="stat-label">Rejected</div>
       <div class="stat-val" id="stat-rejected">0</div>
       <div class="stat-sub">declined</div>
@@ -80,6 +80,7 @@
         <option value="newest">Newest → oldest</option>
       </select>
     </div>
+    <button type="button" class="btn-refresh-list" onclick="openScheduleModal(1)">Weekly calendar</button>
     <button type="button" class="btn-refresh-list" onclick="refreshList()">Refresh list</button>
   </div>
 
