@@ -297,6 +297,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
+  margin-bottom: 6px;
 }
 
 .schedule-week-label {
@@ -311,20 +312,22 @@
 .schedule-nav-btn,
 .schedule-today-btn {
   font-family: "DM Sans", sans-serif;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 700;
-  padding: 8px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--off-white);
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: #fff;
   color: var(--navy);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 6px rgba(14, 32, 64, 0.06);
 }
 
 .schedule-nav-btn:hover,
 .schedule-today-btn:hover {
-  background: #fff;
+  background: var(--off-white);
+  border-color: var(--navy-light);
 }
 
 .schedule-legend {
@@ -352,6 +355,7 @@
 .schedule-cal-row--head {
   display: flex;
   align-items: flex-end;
+  margin-top: 8px;
 }
 
 .schedule-gutter-corner {
@@ -369,7 +373,8 @@
   flex: 1;
   min-width: 72px;
   text-align: center;
-  padding-bottom: 10px;
+  padding-top: 4px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -403,7 +408,7 @@
   font-size: 18px;
   font-family: "DM Serif Display", serif;
   color: var(--text);
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .schedule-cal-row--body {
