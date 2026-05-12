@@ -1,6 +1,8 @@
 let session = null;
 let currentFilter = "all";
 let currentDetail = null;
+/** @type {Array<object>} */
+let reservationsCache = [];
 
 (async function staffDeskInit() {
   try {
@@ -63,20 +65,35 @@ let currentDetail = null;
   document.getElementById("user-avatar").textContent = initials;
   document.getElementById("user-name").textContent =
     (session.fname || "") + " " + (session.lname || "");
+  try {
+    reservationsCache = await fetchReservationsFromApi();
+  } catch (e) {
+    console.error(e);
+    reservationsCache = [];
+    showPageAlert("error", "Could not load reservations from the server.");
+  }
   updateStats();
   renderTable();
 })();
 
-function getReservations() {
-  try {
-    return JSON.parse(localStorage.getItem("xu_reservations") || "[]");
-  } catch (e) {
-    return [];
-  }
+async function refreshStaffReservationsFromApi() {
+  reservationsCache = await fetchReservationsFromApi();
 }
 
-function saveReservations(list) {
-  localStorage.setItem("xu_reservations", JSON.stringify(list));
+function getReservations() {
+  return reservationsCache;
+}
+
+function rowToApiPatch(r) {
+  return {
+    id: r.id,
+    status: r.status,
+    reviewedAt: r.reviewedAt,
+    reviewedBy: r.reviewedBy,
+    rejectReason: r.rejectReason,
+    cancelledAt: r.cancelledAt,
+    cancelledBy: r.cancelledBy,
+  };
 }
 
 function escapeHtmlStaff(s) {
@@ -180,7 +197,7 @@ function renderTable() {
     .join("");
 }
 
-function updateStatus(id, newStatus) {
+async function updateStatus(id, newStatus) {
   const list = getReservations();
   const idx = list.findIndex((r) => r.id === id);
   if (idx === -1) return;
@@ -218,17 +235,28 @@ function updateStatus(id, newStatus) {
     list[idx].reviewedAt = new Date().toISOString();
     list[idx].reviewedBy = session.email;
     const bumped = autoRejectPendingConflictsAfterApproval(list, list[idx], session.email);
-    saveReservations(list);
+    const idsToSync = [id].concat(bumped.bumpedIds || []);
+    try {
+      for (const syncId of idsToSync) {
+        const r = list.find((x) => x.id === syncId);
+        if (r) await patchReservationOnApi(rowToApiPatch(r));
+      }
+      await refreshStaffReservationsFromApi();
+    } catch (e) {
+      console.error(e);
+      showPageAlert("error", e.message || "Could not save to database.");
+      return;
+    }
     updateStats();
     renderTable();
     closeModal();
     showPageAlert(
       "success",
-      bumped > 0
+      bumped.count > 0
         ? "Approved " +
             id +
             ". " +
-            bumped +
+            bumped.count +
             " overlapping pending request(s) were rejected (students see the reason on Track status)."
         : "Reservation " + id + " approved."
     );
@@ -241,7 +269,14 @@ function updateStatus(id, newStatus) {
   if (newStatus === "rejected") {
     list[idx].rejectReason = "Rejected by library staff.";
   }
-  saveReservations(list);
+  try {
+    await patchReservationOnApi(rowToApiPatch(list[idx]));
+    await refreshStaffReservationsFromApi();
+  } catch (e) {
+    console.error(e);
+    showPageAlert("error", e.message || "Could not save to database.");
+    return;
+  }
   updateStats();
   renderTable();
   closeModal();
@@ -316,7 +351,14 @@ function showPageAlert(type, text) {
   }, 4000);
 }
 
-function refreshData() {
+async function refreshData() {
+  try {
+    await refreshStaffReservationsFromApi();
+    showPageAlert("success", "Reloaded reservations from the server.");
+  } catch (e) {
+    console.error(e);
+    showPageAlert("error", e.message || "Could not reload.");
+  }
   updateStats();
   renderTable();
 }

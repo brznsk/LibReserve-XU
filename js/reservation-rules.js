@@ -99,6 +99,7 @@ function autoRejectPendingConflictsAfterApproval(list, approvedRow, reviewedByEm
   const nowIso = new Date().toISOString();
   const by = reviewedByEmail || "staff";
   let count = 0;
+  const bumpedIds = [];
   for (let i = 0; i < list.length; i++) {
     const r = list[i];
     if (r.id === approvedRow.id) continue;
@@ -122,9 +123,10 @@ function autoRejectPendingConflictsAfterApproval(list, approvedRow, reviewedByEm
       "Another reservation was approved for this room and time. Try a different time or room. (Approved booking: " +
       approvedRow.id +
       ")";
+    bumpedIds.push(r.id);
     count++;
   }
-  return count;
+  return { count, bumpedIds };
 }
 
 /** Milliseconds before start time by which a student may still cancel (local date + time). */

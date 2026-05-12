@@ -1,6 +1,6 @@
 # Environment & deployment (Netlify + MongoDB)
 
-This app uses **MongoDB Atlas** for accounts. On **Netlify**, the database is reached only from **serverless functions** (`netlify/functions/`). The browser never sees your connection string.
+This app uses **MongoDB Atlas** for **users**, **confab rooms** (`rooms` collection), and **reservations** (`reservations` collection, including group-member text and optional structured `groupMembers`). On **Netlify**, the database is reached only from **serverless functions** (`netlify/functions/`). The browser never sees your connection string.
 
 ---
 
@@ -50,6 +50,8 @@ No extra build step is required for the static HTML/CSS/JS; `npm install` is eno
 | `/register`                       | `register.js`           | `POST /api/register`       |
 | `/users`                          | `users.js`              | `GET /api/users`           |
 | `/admin-setup`                    | `admin-setup.js`        | `POST /api/admin-setup`    |
+| `/rooms`                          | `rooms.js`              | `GET /api/rooms`           |
+| `/reservations`                   | `reservations.js`       | `GET` / `POST` / `PATCH` `/api/reservations` |
 
 `API_BASE` is `/.netlify/functions` on Netlify and `http://127.0.0.1:3000/api` locally.
 

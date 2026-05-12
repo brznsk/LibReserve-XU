@@ -1,57 +1,35 @@
-/** Confab 1–6 specs (New Building) — seating, network, and AV from library inventory */
-const rooms = [
-  {
-    n: 1,
-    loc: "New Building · 5th floor",
-    cap: 15,
-    internet: "School Wi‑Fi",
-    whiteboard: false,
-    projector: true,
-  },
-  {
-    n: 2,
-    loc: "New Building · 5th floor",
-    cap: 15,
-    internet: "School Wi‑Fi",
-    whiteboard: false,
-    projector: true,
-  },
-  {
-    n: 3,
-    loc: "New Building · 4th floor",
-    cap: 15,
-    internet: "LAN cable + school Wi‑Fi",
-    whiteboard: true,
-    projector: true,
-  },
-  {
-    n: 4,
-    loc: "New Building · 4th floor",
-    cap: 15,
-    internet: "LAN cable + school Wi‑Fi",
-    whiteboard: true,
-    projector: true,
-  },
-  {
-    n: 5,
-    loc: "New Building · 3rd floor",
-    cap: 15,
-    internet: "LAN cable + school Wi‑Fi",
-    whiteboard: true,
-    projector: true,
-  },
-  {
-    n: 6,
-    loc: "New Building · 3rd floor",
-    cap: 15,
-    internet: "LAN cable + school Wi‑Fi",
-    whiteboard: true,
-    projector: true,
-  },
+/** Fallback if `/rooms` API is unavailable */
+const FALLBACK_ROOMS = [
+  { n: 1, loc: "New Building · 5th floor", cap: 15, internet: "School Wi‑Fi", whiteboard: false, projector: true },
+  { n: 2, loc: "New Building · 5th floor", cap: 15, internet: "School Wi‑Fi", whiteboard: false, projector: true },
+  { n: 3, loc: "New Building · 4th floor", cap: 15, internet: "LAN cable + school Wi‑Fi", whiteboard: true, projector: true },
+  { n: 4, loc: "New Building · 4th floor", cap: 15, internet: "LAN cable + school Wi‑Fi", whiteboard: true, projector: true },
+  { n: 5, loc: "New Building · 3rd floor", cap: 15, internet: "LAN cable + school Wi‑Fi", whiteboard: true, projector: true },
+  { n: 6, loc: "New Building · 3rd floor", cap: 15, internet: "LAN cable + school Wi‑Fi", whiteboard: true, projector: true },
 ];
+
+/** Loaded from MongoDB via API (same shape as before). */
+let rooms = [];
+/** @type {Array<object>} */
+let reservationsCache = [];
 
 let session = null;
 let selectedRoom = null;
+
+async function loadStudentBookingData() {
+  try {
+    rooms = await fetchRoomsFromApi();
+  } catch (e) {
+    console.warn("Using default room list (rooms API failed)", e);
+    rooms = FALLBACK_ROOMS.slice();
+  }
+  try {
+    reservationsCache = await fetchReservationsFromApi();
+  } catch (e) {
+    console.error(e);
+    reservationsCache = [];
+  }
+}
 
 /** Weekly schedule modal: which room and week offset from current (0 = this week) */
 let scheduleRoomViewing = null;
@@ -313,7 +291,9 @@ function bindBookingModalLibraryHours() {
   document.getElementById("user-avatar").textContent = initials;
   document.getElementById("user-name").textContent =
     (session.fname || "") + " " + (session.lname || "");
+  await loadStudentBookingData();
   renderRooms();
+  renderMyReservations();
   bindGroupMembersListField();
   bindBookingModalLibraryHours();
   bindScheduleModal();
@@ -383,7 +363,7 @@ function renderScheduleWeek() {
     dates.push(formatYMDFromDate(d));
   }
 
-  const all = JSON.parse(localStorage.getItem("xu_reservations") || "[]");
+  const all = reservationsCache;
   const approved = all.filter(
     (r) =>
       r.status === "approved" &&
@@ -486,6 +466,12 @@ function renderScheduleWeek() {
 
 function renderRooms() {
   const grid = document.getElementById("rooms-grid");
+  if (!grid) return;
+  if (!rooms.length) {
+    grid.innerHTML =
+      '<p style="color:var(--text-soft);padding:2rem">No rooms loaded. Check the server and try refreshing.</p>';
+    return;
+  }
   grid.innerHTML = rooms
     .map((r) => {
       const wb = r.whiteboard
@@ -575,7 +561,7 @@ function showModalMsg(type, text) {
   el.style.display = "block";
 }
 
-function submitReservation() {
+async function submitReservation() {
   const members = document.getElementById("m-members").value.trim();
   const date = document.getElementById("m-date").value;
   const purpose = document.getElementById("m-purpose").value.trim();
@@ -599,7 +585,7 @@ function submitReservation() {
   const pastErr = reservationValidateNotPast(date, start, end);
   if (pastErr) return showModalMsg("error", pastErr);
 
-  const reservations = JSON.parse(localStorage.getItem("xu_reservations") || "[]");
+  const reservations = reservationsCache;
   const candidate = {
     roomNum: selectedRoom.n,
     roomName: "Confab " + selectedRoom.n,
@@ -618,7 +604,7 @@ function submitReservation() {
   }
 
   const code = "REQ-" + Date.now().toString().slice(-7);
-  reservations.push({
+  const payload = {
     id: code,
     roomNum: selectedRoom.n,
     roomName: "Confab " + selectedRoom.n,
@@ -633,20 +619,25 @@ function submitReservation() {
     purpose,
     status: "pending",
     submittedAt: new Date().toISOString(),
-  });
-  localStorage.setItem("xu_reservations", JSON.stringify(reservations));
+  };
 
   btn.textContent = "Submitting…";
   btn.disabled = true;
-  setTimeout(() => {
+  try {
+    await createReservationOnApi(payload);
+    reservationsCache = await fetchReservationsFromApi();
+    showModalMsg("success", "Reservation submitted! Your tracking code: " + code);
+  } catch (e) {
+    console.error(e);
+    showModalMsg("error", e.message || "Could not save reservation. Try again.");
+  } finally {
     btn.textContent = "Submit Reservation";
     btn.disabled = false;
-    showModalMsg("success", "Reservation submitted! Your tracking code: " + code);
-  }, 1000);
+  }
 }
 
 function renderMyReservations() {
-  const all = JSON.parse(localStorage.getItem("xu_reservations") || "[]");
+  const all = reservationsCache;
   const mine = all.filter((r) => r.studentEmail === session.email);
   const container = document.getElementById("my-res-list");
   if (!mine.length) {
@@ -690,9 +681,9 @@ function renderMyReservations() {
     "</div>";
 }
 
-function cancelStudentReservation(id) {
+async function cancelStudentReservation(id) {
   if (!session || !session.email) return;
-  const all = JSON.parse(localStorage.getItem("xu_reservations") || "[]");
+  const all = reservationsCache;
   const idx = all.findIndex((r) => r.id === id);
   if (idx === -1) return;
   const r = all[idx];
@@ -703,17 +694,25 @@ function cancelStudentReservation(id) {
     return;
   }
   if (!confirm("Cancel this reservation? This cannot be undone.")) return;
-  all[idx].status = "cancelled";
-  all[idx].cancelledAt = new Date().toISOString();
-  all[idx].cancelledBy = "student";
-  localStorage.setItem("xu_reservations", JSON.stringify(all));
-  renderMyReservations();
+  try {
+    await patchReservationOnApi({
+      id,
+      status: "cancelled",
+      cancelledAt: new Date().toISOString(),
+      cancelledBy: "student",
+    });
+    reservationsCache = await fetchReservationsFromApi();
+    renderMyReservations();
+  } catch (e) {
+    console.error(e);
+    alert(e.message || "Could not cancel reservation.");
+  }
 }
 
 function trackReservation() {
   const code = document.getElementById("track-code").value.trim().toUpperCase();
-  const all = JSON.parse(localStorage.getItem("xu_reservations") || "[]");
-  const res = all.find((r) => r.id === code);
+  const all = reservationsCache;
+  const res = all.find((r) => r.id && String(r.id).toUpperCase() === code);
   const resultEl = document.getElementById("track-result");
   if (!res) {
     resultEl.innerHTML = '<div style="color:var(--danger);">Tracking code not found.</div>';

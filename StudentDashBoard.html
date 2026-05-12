@@ -29,39 +29,91 @@
   You are signed in for booking with your @my.xu.edu.ph staff account. Use <strong>Library Staff</strong> sign-in for desk tools.
 </p>
 
-<div class="main-content">
-  <div class="rooms-grid" id="rooms-grid"></div>
+<div class="main main-content">
+  <div class="page-header page-header--rooms">
+    <h1>Confab rooms</h1>
+    <p class="page-header-lead">Request a time slot; library staff will approve or suggest changes.</p>
+  </div>
 
-  <div class="history-section">
-    <h3>My Reservations</h3>
-    <div id="my-res-list">
-      <p style="color:var(--text-soft)">Loading your history from MongoDB...</p>
+  <div class="tabs">
+    <button type="button" class="tab active" onclick="switchTab('rooms', this)">Rooms</button>
+    <button type="button" class="tab" onclick="switchTab('my-reservations', this)">My reservations</button>
+    <button type="button" class="tab" onclick="switchTab('track', this)">Track status</button>
+  </div>
+
+  <div id="tab-rooms">
+    <div class="rooms-grid" id="rooms-grid"></div>
+  </div>
+
+  <div id="tab-my-reservations" style="display:none">
+    <div class="history-section">
+      <h3>My Reservations</h3>
+      <div id="my-res-list">
+        <p style="color:var(--text-soft)">Loading from the server…</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-track" style="display:none">
+    <div class="history-section">
+      <h3>Track a reservation</h3>
+      <p style="color:var(--text-soft);margin-bottom:12px">Enter your tracking code (e.g. REQ-1234567).</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="track-code" placeholder="REQ-…" style="flex:1;min-width:180px;padding:10px 12px;border-radius:8px;border:1.5px solid var(--border)"/>
+        <button type="button" class="btn-reserve" onclick="trackReservation()">Look up</button>
+      </div>
+      <div id="track-result" style="display:none;margin-top:16px;padding:16px;background:#fff;border-radius:12px;border:1px solid var(--border)"></div>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="booking-modal">
+<div class="modal-overlay" id="book-modal" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <div class="modal-header">
-      <h3 id="modal-room-name">Reserve Room</h3>
-      <button class="modal-close" onclick="closeBookingModal()">&times;</button>
+      <h3 id="selected-room-label">Reserve room</h3>
+      <button type="button" class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
     </div>
     <div class="modal-body">
-      <div class="alert error" id="book-err" style="display:none"></div>
-      <input type="date" id="book-date"/>
-      <div class="time-row">
-        <input type="time" id="book-start"/>
-        <input type="time" id="book-end"/>
+      <div class="alert error" id="modal-error" style="display:none"></div>
+      <div class="alert success" id="modal-success" style="display:none"></div>
+      <p id="booking-library-hours-hint" class="booking-hint" style="font-size:13px;color:var(--text-soft);margin-bottom:12px;line-height:1.5"></p>
+      <div class="field"><label for="m-members">Group members</label>
+        <textarea id="m-members" rows="4" placeholder="1. Name – School ID&#10;2. …"></textarea>
       </div>
+      <div class="field"><label for="m-date">Date</label><input type="date" id="m-date"/></div>
+      <div class="time-row">
+        <div class="field"><label for="m-start">Start</label><input type="time" id="m-start"/></div>
+        <div class="field"><label for="m-end">End</label><input type="time" id="m-end"/></div>
+      </div>
+      <div class="field"><label for="m-purpose">Purpose</label><textarea id="m-purpose" rows="2" placeholder="Study session, thesis defense prep, …"></textarea></div>
     </div>
     <div class="modal-footer">
-      <button class="btn-reserve" id="submit-btn" onclick="submitReservation()">Confirm Booking</button>
+      <button type="button" class="btn-reserve" id="submit-btn" onclick="submitReservation()">Submit request</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="schedule-modal" onclick="if(event.target===this)closeScheduleModal()">
+  <div class="modal schedule-modal">
+    <div class="modal-header">
+      <h3 id="schedule-modal-title">Weekly schedule</h3>
+      <button type="button" class="modal-close" onclick="closeScheduleModal()" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="schedule-toolbar">
+        <button type="button" id="schedule-prev-week" class="btn-schedule-nav">&larr; Prev</button>
+        <span id="schedule-week-label"></span>
+        <button type="button" id="schedule-this-week" class="btn-schedule-nav">This week</button>
+        <button type="button" id="schedule-next-week" class="btn-schedule-nav">Next &rarr;</button>
+      </div>
+      <div id="schedule-cal-root"></div>
     </div>
   </div>
 </div>
 
 <script src="js/xu-api-base.js"></script>
 <script src="js/auth-store.js"></script>
+<script src="js/booking-api.js"></script>
 <script src="js/reservation-rules.js"></script>
 <script src="js/student-dashboard.js"></script>
 </body>
