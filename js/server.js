@@ -115,9 +115,17 @@ app.post('/api/login', async (req, res) => {
 // 2. Student Registration — returns session so client can auto-login
 app.post('/api/register', async (req, res) => {
     try {
-        const { fname, lname, sid, email, password, type } = req.body;
+            const { fname, lname, sid, email, password, type } = req.body || {};
+        const emailLower = String(email || '').trim().toLowerCase();
 
-        const existingUser = await User.findOne({ email: email.toLowerCase() });
+        if (!emailLower || !String(fname || '').trim() || !String(lname || '').trim() || !password) {
+            return res.status(400).json({ message: "Please fill in all required fields (name, email, password)." });
+        }
+        if (type !== 'student') {
+            return res.status(400).json({ message: "Invalid account type for registration." });
+        }
+
+        const existingUser = await User.findOne({ email: emailLower }).collation({ locale: 'en', strength: 2 });
         if (existingUser) {
             return res.status(400).json({ message: "Email already registered." });
         }
@@ -125,18 +133,30 @@ app.post('/api/register', async (req, res) => {
         const hashed = await bcrypt.hash(password, 10);
 
         const newUser = new User({
-            fname,
-            lname,
-            sid,
-            email: email.toLowerCase(),
+            fname: String(fname).trim(),
+            lname: String(lname).trim(),
+            sid: sid != null ? String(sid).trim() : undefined,
+            email: emailLower,
             password: hashed,
-            type
+            type: 'student'
         });
 
-        await newUser.save();
+        try {
+            await newUser.save();
+        } catch (e) {
+            if (e && e.code === 11000) {
+                return res.status(400).json({ message: "Email already registered." });
+            }
+            throw e;
+        }
         res.status(201).json(sessionPayload(newUser, 'student', 'student'));
     } catch (err) {
-        res.status(400).json({ message: "Registration failed. Ensure all fields are valid." });
+        console.error(err);
+        if (err.name === 'ValidationError') {
+            const first = Object.values(err.errors || {})[0];
+            return res.status(400).json({ message: first?.message || 'Registration failed. Check all fields.' });
+        }
+        res.status(500).json({ message: "Registration failed. Please try again later." });
     }
 });
 

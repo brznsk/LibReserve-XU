@@ -1,9 +1,7 @@
-const API_BASE = (() => {
-    const h = window.location.hostname;
-    if (h === 'localhost' || h === '127.0.0.1') return "http://localhost:3000/api";
-    if (h.endsWith('.netlify.app')) return '/.netlify/functions';
-    return "https://your-railway-app-name.up.railway.app/api";
-})();
+const API_BASE =
+  window.XU_API_BASE ||
+  (console.warn("[LibReserve] Load js/xu-api-base.js before auth-store.js; using http://127.0.0.1:3000/api"),
+  "http://127.0.0.1:3000/api");
 
 /**
  * @returns {Promise<Array>}

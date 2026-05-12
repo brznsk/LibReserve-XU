@@ -1,0 +1,5 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+# Same-origin; no extra redirects required for /.netlify/functions/*

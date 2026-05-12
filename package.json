@@ -1,0 +1,9 @@
+{
+  "name": "libreserve",
+  "private": true,
+  "description": "Netlify Functions deps (MongoDB auth API). Local Express API still uses js/package.json.",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "mongoose": "^7.0.0"
+  }
+}
