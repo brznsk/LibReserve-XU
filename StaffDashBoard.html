@@ -110,6 +110,28 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="schedule-modal" onclick="if(event.target===this)closeScheduleModal()">
+  <div class="modal schedule-modal">
+    <div class="modal-header">
+      <h3 id="schedule-modal-title">Weekly schedule</h3>
+      <button type="button" class="modal-close" onclick="closeScheduleModal()" aria-label="Close">×</button>
+    </div>
+    <div class="modal-body schedule-modal-body">
+      <div class="schedule-toolbar">
+        <button type="button" id="schedule-prev-week" class="schedule-nav-btn">&larr; Prev</button>
+        <button type="button" id="schedule-this-week" class="schedule-today-btn">This week</button>
+        <span id="schedule-week-label" class="schedule-week-label"></span>
+        <select id="schedule-room" class="schedule-room-select" aria-label="Select room"></select>
+        <button type="button" id="schedule-next-week" class="schedule-nav-btn">Next &rarr;</button>
+      </div>
+      <p class="schedule-legend">Approved reservations only. (Staff view shows student + tracking code.)</p>
+      <div class="schedule-scroll">
+        <div id="schedule-cal-root"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="js/xu-api-base.js"></script>
 <script src="js/auth-store.js"></script>
 <script src="js/booking-api.js"></script>

@@ -3,6 +3,8 @@ let currentFilter = "all";
 let currentDetail = null;
 /** @type {Array<object>} */
 let reservationsCache = [];
+/** @type {Array<object>} */
+let rooms = [];
 
 /** Background refresh from MongoDB (no toast). */
 const RESERVATIONS_AUTO_REFRESH_MS = 30000;
@@ -15,6 +17,78 @@ async function pullReservationsAndRender() {
   } catch (e) {
     console.warn("Reservation refresh failed", e);
   }
+}
+
+(function scheduleConstants() {})();
+/** Weekly schedule modal: which room and week offset from current (0 = this week) */
+let scheduleRoomViewing = null;
+let scheduleViewWeekOffset = 0;
+
+const SCHEDULE_CAL_START_MIN = 8 * 60;
+const SCHEDULE_CAL_END_MIN = 20 * 60;
+const SCHEDULE_HOUR_PX = 44;
+const SCHEDULE_DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function pad2(n) {
+  return String(n).padStart(2, "0");
+}
+
+function formatYMDFromDate(d) {
+  return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+}
+
+function getMondayOfDate(base) {
+  const d = new Date(base.getFullYear(), base.getMonth(), base.getDate());
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function formatHourLabel(h24) {
+  const am = h24 < 12;
+  const h12 = h24 % 12 || 12;
+  return h12 + (am ? " AM" : " PM");
+}
+
+function formatTimeRangeLabel(start, end) {
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  const sAm = sh < 12;
+  const eAm = eh < 12;
+  const sh12 = sh % 12 || 12;
+  const eh12 = eh % 12 || 12;
+  const s = sh12 + ":" + pad2(sm) + (sAm ? " AM" : " PM");
+  const e = eh12 + ":" + pad2(em) + (eAm ? " AM" : " PM");
+  return s + " – " + e;
+}
+
+function scheduleEventBlockStyle(dateStr, startTime, endTime) {
+  const win = reservationLibraryHoursWindow(dateStr);
+  if (!win || win.closed) return null;
+  const dayOpen = reservationTimeToMinutes(win.open);
+  const dayClose = reservationTimeToMinutes(win.close);
+  let s = reservationTimeToMinutes(startTime);
+  let e = reservationTimeToMinutes(endTime);
+  if ([s, e].some((x) => Number.isNaN(x))) return null;
+  s = Math.max(s, dayOpen, SCHEDULE_CAL_START_MIN);
+  e = Math.min(e, dayClose, SCHEDULE_CAL_END_MIN);
+  if (e <= s) return null;
+  const span = SCHEDULE_CAL_END_MIN - SCHEDULE_CAL_START_MIN;
+  const top = ((s - SCHEDULE_CAL_START_MIN) / span) * 100;
+  const h = ((e - s) / span) * 100;
+  return { top: top + "%", height: h + "%" };
+}
+
+function closedHoursOverlayTop(dateStr) {
+  const win = reservationLibraryHoursWindow(dateStr);
+  if (!win || win.closed) return null;
+  const closeMin = reservationTimeToMinutes(win.close);
+  if (closeMin >= SCHEDULE_CAL_END_MIN) return null;
+  const span = SCHEDULE_CAL_END_MIN - SCHEDULE_CAL_START_MIN;
+  const topPct = ((closeMin - SCHEDULE_CAL_START_MIN) / span) * 100;
+  return topPct + "%";
 }
 
 (async function staffDeskInit() {
@@ -84,12 +158,19 @@ async function pullReservationsAndRender() {
   document.getElementById("user-name").textContent =
     (session.fname || "") + " " + (session.lname || "");
   try {
+    try {
+      rooms = await fetchRoomsFromApi();
+    } catch (e) {
+      console.warn("Rooms API failed; schedule room picker may be limited.", e);
+      rooms = [];
+    }
     reservationsCache = await fetchReservationsFromApi();
   } catch (e) {
     console.error(e);
     reservationsCache = [];
     showPageAlert("error", "Could not load reservations from the server.");
   }
+  bindScheduleModal();
   updateStats();
   renderTable();
 
@@ -143,6 +224,204 @@ function switchTab(filter, el) {
   document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
   el.classList.add("active");
   renderTable();
+}
+
+function openScheduleModal(roomNum) {
+  const modal = document.getElementById("schedule-modal");
+  if (!modal) return;
+
+  const select = document.getElementById("schedule-room");
+  if (select) {
+    const list = rooms && rooms.length ? rooms : [];
+    const roomNums = list.length ? list.map((r) => r.n) : [1, 2, 3, 4, 5, 6];
+    select.innerHTML = roomNums
+      .map((n) => `<option value="${n}">Confab ${n}</option>`)
+      .join("");
+  }
+
+  scheduleRoomViewing = roomNum || scheduleRoomViewing || 1;
+  scheduleViewWeekOffset = 0;
+  if (select) select.value = String(scheduleRoomViewing);
+  modal.classList.add("open");
+  renderScheduleWeekStaff();
+}
+
+function closeScheduleModal() {
+  const modal = document.getElementById("schedule-modal");
+  if (modal) modal.classList.remove("open");
+}
+
+function bindScheduleModal() {
+  const prev = document.getElementById("schedule-prev-week");
+  const next = document.getElementById("schedule-next-week");
+  const today = document.getElementById("schedule-this-week");
+  const overlay = document.getElementById("schedule-modal");
+  const select = document.getElementById("schedule-room");
+  if (prev)
+    prev.addEventListener("click", () => {
+      scheduleViewWeekOffset--;
+      renderScheduleWeekStaff();
+    });
+  if (next)
+    next.addEventListener("click", () => {
+      scheduleViewWeekOffset++;
+      renderScheduleWeekStaff();
+    });
+  if (today)
+    today.addEventListener("click", () => {
+      scheduleViewWeekOffset = 0;
+      renderScheduleWeekStaff();
+    });
+  if (select)
+    select.addEventListener("change", () => {
+      scheduleRoomViewing = Number(select.value);
+      scheduleViewWeekOffset = 0;
+      renderScheduleWeekStaff();
+    });
+  if (overlay)
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) closeScheduleModal();
+    });
+}
+
+function renderScheduleWeekStaff() {
+  const root = document.getElementById("schedule-cal-root");
+  const titleEl = document.getElementById("schedule-modal-title");
+  const labelEl = document.getElementById("schedule-week-label");
+  if (!root || scheduleRoomViewing == null) return;
+
+  const room = rooms.find((r) => r.n === scheduleRoomViewing);
+  if (titleEl) {
+    titleEl.textContent =
+      "Confab " + scheduleRoomViewing + " — weekly schedule · " + (room ? room.loc : "");
+  }
+
+  const monday = getMondayOfDate(new Date());
+  monday.setDate(monday.getDate() + scheduleViewWeekOffset * 7);
+  const sun = new Date(monday);
+  sun.setDate(monday.getDate() + 6);
+  if (labelEl) {
+    labelEl.textContent =
+      monday.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
+      " – " +
+      sun.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  }
+
+  const dates = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    dates.push(formatYMDFromDate(d));
+  }
+
+  const all = reservationsCache;
+  const approved = all.filter(
+    (r) =>
+      r.status === "approved" &&
+      Number(r.roomNum) === Number(scheduleRoomViewing) &&
+      dates.includes(String(r.date))
+  );
+
+  const bodyHeight = ((SCHEDULE_CAL_END_MIN - SCHEDULE_CAL_START_MIN) / 60) * SCHEDULE_HOUR_PX;
+
+  let gutterLabels = "";
+  for (let h = 8; h <= 19; h++) {
+    gutterLabels +=
+      '<div class="schedule-hour-cell" style="height:' +
+      SCHEDULE_HOUR_PX +
+      'px">' +
+      formatHourLabel(h) +
+      "</div>";
+  }
+  const gutterHtml =
+    '<div class="schedule-gutter-col" style="min-height:' +
+    bodyHeight +
+    'px"><div class="schedule-gutter-labels">' +
+    gutterLabels +
+    '</div><span class="schedule-gutter-end-label">' +
+    formatHourLabel(20) +
+    "</span></div>";
+
+  let headersHtml = "";
+  let columnsHtml = "";
+  const todayYmd = formatYMDFromDate(new Date());
+
+  for (let i = 0; i < 7; i++) {
+    const dateStr = dates[i];
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const win = reservationLibraryHoursWindow(dateStr);
+    const closedAll = win && win.closed;
+    const isToday = todayYmd === dateStr;
+
+    headersHtml +=
+      '<div class="schedule-day-head' +
+      (closedAll ? " schedule-day-head--closed" : "") +
+      (isToday ? " schedule-day-head--today" : "") +
+      '"><span class="schedule-dow">' +
+      SCHEDULE_DAY_LABELS[i] +
+      '</span><span class="schedule-dom">' +
+      d.getDate() +
+      "</span></div>";
+
+    const dayEvents = approved
+      .filter((r) => String(r.date) === dateStr)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+    let blocksHtml = "";
+    for (const r of dayEvents) {
+      const st = scheduleEventBlockStyle(dateStr, r.startTime, r.endTime);
+      if (!st) continue;
+      const rangeLabel = formatTimeRangeLabel(r.startTime, r.endTime);
+      const student = escapeHtmlStaff(r.studentName || "Student");
+      const code = escapeHtmlStaff(r.id || "");
+      blocksHtml +=
+        '<div class="schedule-block" style="top:' +
+        st.top +
+        ";height:" +
+        st.height +
+        '" title="' +
+        student +
+        " · " +
+        code +
+        '"><span class="schedule-block-time">' +
+        rangeLabel +
+        '</span><span class="schedule-block-title">' +
+        student +
+        '</span><span class="schedule-block-meta">' +
+        code +
+        "</span></div>";
+    }
+
+    const shadeTop = closedHoursOverlayTop(dateStr);
+    const shadeHtml = closedAll
+      ? '<div class="schedule-closed-layer schedule-closed-layer--full" aria-hidden="true"><span>Closed</span></div>'
+      : shadeTop
+        ? '<div class="schedule-closed-layer" style="top:' + shadeTop + '" aria-hidden="true"></div>'
+        : "";
+
+    columnsHtml +=
+      '<div class="schedule-day-col' +
+      (closedAll ? " schedule-day-col--closed" : "") +
+      '"><div class="schedule-day-body" style="height:' +
+      bodyHeight +
+      'px">' +
+      shadeHtml +
+      blocksHtml +
+      "</div></div>";
+  }
+
+  root.innerHTML =
+    '<div class="schedule-cal-row schedule-cal-row--head">' +
+    '<div class="schedule-gutter-corner"></div>' +
+    '<div class="schedule-headers-row">' +
+    headersHtml +
+    "</div></div>" +
+    '<div class="schedule-cal-row schedule-cal-row--body">' +
+    gutterHtml +
+    '<div class="schedule-days-row">' +
+    columnsHtml +
+    "</div></div>";
 }
 
 function renderTable() {
@@ -204,6 +483,7 @@ function renderTable() {
       <td>
         <div class="action-btns">
           <button class="btn-view" onclick="viewDetail('${r.id}')">View</button>
+          <button class="btn-view" onclick="openScheduleModal(${Number(r.roomNum) || 1})">Calendar</button>
           ${
             r.status === "pending"
               ? `

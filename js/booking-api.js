@@ -5,7 +5,7 @@ function bookingApiBase() {
     (console.warn("[LibReserve] xu-api-base.js missing; using http://127.0.0.1:3000/api"),
     "http://127.0.0.1:3000/api")
   );
-}s
+}
 
 async function fetchReservationsFromApi() {
   const r = await fetch(`${bookingApiBase()}/reservations`);
