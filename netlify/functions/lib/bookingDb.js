@@ -1,25 +1,5 @@
 const mongoose = require("mongoose");
-const { getMongoUriOrThrow } = require("./mongoUri");
-const { ensureBuiltinDemoAdminWhenConnected } = require("./authLogic");
-
-let connectPromise = null;
-
-async function ensureDb() {
-  if (mongoose.connection.readyState === 1) {
-    await ensureBuiltinDemoAdminWhenConnected();
-    return;
-  }
-  const uri = getMongoUriOrThrow();
-  if (!connectPromise) {
-    connectPromise = mongoose.connect(uri, {
-      maxPoolSize: 5,
-      serverSelectionTimeoutMS: 8000,
-      connectTimeoutMS: 8000, 
-    });
-  }
-  await connectPromise;
-  await ensureBuiltinDemoAdminWhenConnected();
-}
+const { ensureDb } = require("./authLogic");
 
 const DEFAULT_ROOMS = [
   { roomNum: 1, loc: "New Building · 5th floor", cap: 15, internet: "School Wi‑Fi", whiteboard: false, projector: true },
@@ -132,8 +112,8 @@ function parseGroupMemberLines(membersText) {
 }
 
 async function seedRoomsIfEmpty() {
-  const n = await Room.countDocuments();
-  if (n > 0) return;
+  const any = await Room.exists({});
+  if (any) return;
   await Room.insertMany(DEFAULT_ROOMS);
 }
 

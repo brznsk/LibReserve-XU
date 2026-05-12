@@ -51,6 +51,7 @@ async function ensureDb() {
   }
   const uri = getMongoUriOrThrow();
   if (!connectPromise) {
+    mongoose.set("bufferCommands", false);
     connectPromise = mongoose.connect(uri, {
       maxPoolSize: 5,
       serverSelectionTimeoutMS: 8000,
@@ -380,5 +381,6 @@ module.exports = {
   patchStaffPasswordAction: (body) => withDb(() => patchStaffPasswordAction(body)),
   usersAction: () => withDb(() => usersAction()),
   patchUserAction: (body) => withDb(() => patchUserAction(body)),
+  ensureDb,
   ensureBuiltinDemoAdminWhenConnected,
 };

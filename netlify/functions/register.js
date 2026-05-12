@@ -5,7 +5,8 @@ const headers = {
   "Content-Type": "application/json",
 };
 
-exports.handler = async (event) => {
+exports.handler = async (event, context) => {
+  if (context) context.callbackWaitsForEmptyEventLoop = false;
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 204, headers, body: "" };
   }
