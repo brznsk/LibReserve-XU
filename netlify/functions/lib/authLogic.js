@@ -20,9 +20,6 @@ let connectPromise = null;
 
 let builtinAdminSeedAttempted = false;
 
-/**
- * README demo admin (MongoDB). Idempotent: creates only if admin@xu.edu.ph is absent.
- */
 async function ensureBuiltinDemoAdminWhenConnected() {
   if (mongoose.connection.readyState !== 1) return;
   if (builtinAdminSeedAttempted) return;
