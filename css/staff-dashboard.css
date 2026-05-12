@@ -208,26 +208,8 @@
   border-color: var(--navy);
 }
 
-.btn-refresh-desk {
-  flex-shrink: 0;
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: 1.5px solid var(--navy);
-  background: #fff;
-  color: var(--navy);
-  font-family: "DM Sans", sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-}
-
-.btn-refresh-desk:hover {
-  background: var(--navy);
-  color: #fff;
-}
-
-.search-input:focus {
+.desk-toolbar input#search-input:focus {
+  outline: none;
   border-color: var(--navy);
 }
 

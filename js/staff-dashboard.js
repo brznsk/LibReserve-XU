@@ -4,6 +4,19 @@ let currentDetail = null;
 /** @type {Array<object>} */
 let reservationsCache = [];
 
+/** Background refresh from MongoDB (no toast). */
+const RESERVATIONS_AUTO_REFRESH_MS = 30000;
+
+async function pullReservationsAndRender() {
+  try {
+    await refreshStaffReservationsFromApi();
+    updateStats();
+    renderTable();
+  } catch (e) {
+    console.warn("Reservation refresh failed", e);
+  }
+}
+
 (async function staffDeskInit() {
   try {
     session = JSON.parse(sessionStorage.getItem("xu_session") || "null");
@@ -54,6 +67,11 @@ let reservationsCache = [];
     else badge.textContent = "STAFF";
   }
 
+  const adminPanelLink = document.getElementById("link-admin-panel");
+  if (adminPanelLink) {
+    adminPanelLink.style.display = live.type === "admin" ? "inline-flex" : "none";
+  }
+
   const portalLink = document.getElementById("link-student-portal");
   if (portalLink && live.type === "student" && live.staffPortalAccess) {
     portalLink.style.display = "inline-flex";
@@ -74,6 +92,11 @@ let reservationsCache = [];
   }
   updateStats();
   renderTable();
+
+  setInterval(() => void pullReservationsAndRender(), RESERVATIONS_AUTO_REFRESH_MS);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") void pullReservationsAndRender();
+  });
 })();
 
 async function refreshStaffReservationsFromApi() {
@@ -349,18 +372,6 @@ function showPageAlert(type, text) {
   setTimeout(() => {
     el.style.display = "none";
   }, 4000);
-}
-
-async function refreshData() {
-  try {
-    await refreshStaffReservationsFromApi();
-    showPageAlert("success", "Reloaded reservations from the server.");
-  } catch (e) {
-    console.error(e);
-    showPageAlert("error", e.message || "Could not reload.");
-  }
-  updateStats();
-  renderTable();
 }
 
 function logout() {

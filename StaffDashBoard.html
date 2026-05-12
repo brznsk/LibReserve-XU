@@ -20,6 +20,7 @@
     <span class="staff-badge" id="role-badge">STAFF</span>
   </div>
   <div class="topbar-right">
+    <a class="topbar-link" id="link-admin-panel" href="AdminDashBoard.html" style="display:none">Admin panel</a>
     <div class="user-pill">
       <div class="avatar" id="user-avatar">?</div>
       <span id="user-name">Staff</span>
@@ -31,7 +32,6 @@
 <div class="main-content">
   <div class="desk-toolbar">
     <input type="text" id="search-input" placeholder="Search live requests..." oninput="renderTable()"/>
-    <button type="button" class="btn-refresh-desk" onclick="refreshData()">Sync with MongoDB</button>
   </div>
 
   <div class="res-table-wrap">

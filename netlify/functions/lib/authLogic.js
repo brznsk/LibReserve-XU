@@ -237,6 +237,98 @@ async function adminSetupAction(body) {
   return { statusCode: 201, json: { message: "Administrator created successfully." } };
 }
 
+function validatePasswordForStaff(pw) {
+  if (!pw || pw.length < 12) return "Password must be at least 12 characters.";
+  if (!/[a-z]/.test(pw)) return "Password must include at least one lowercase letter.";
+  if (!/[A-Z]/.test(pw)) return "Password must include at least one uppercase letter.";
+  if (!/[^A-Za-z0-9]/.test(pw)) {
+    return "Password must include at least one special character (e.g. !@#$%).";
+  }
+  return null;
+}
+
+function normalizeStaffEmail(raw) {
+  const email = String(raw || "").trim();
+  if (!email) return { error: "Please enter an email address.", normalized: null };
+  const lower = email.toLowerCase();
+  if (!/^[^\s@]+@(?:xu\.edu\.ph|my\.xu\.edu\.ph)$/i.test(lower)) {
+    return {
+      error: "Staff email must be @xu.edu.ph or @my.xu.edu.ph.",
+      normalized: null,
+    };
+  }
+  return { error: null, normalized: lower };
+}
+
+function normalizeStaffEmployeeId(raw) {
+  const id = String(raw || "").trim();
+  if (!id) return { error: "Please enter Staff/Employee ID.", normalized: null };
+  if (!/^[A-Za-z0-9-]{3,24}$/.test(id)) {
+    return {
+      error: "Staff/Employee ID must be 3–24 characters (letters, numbers, or hyphen only).",
+      normalized: null,
+    };
+  }
+  return { error: null, normalized: id };
+}
+
+async function createStaffAction(body) {
+  const { fname, lname, email, sid, password } = body || {};
+  if (!String(fname || "").trim() || !String(lname || "").trim()) {
+    return { statusCode: 400, json: { message: "Enter first and last name." } };
+  }
+  const pwErr = validatePasswordForStaff(password);
+  if (pwErr) return { statusCode: 400, json: { message: pwErr } };
+  const em = normalizeStaffEmail(email);
+  if (em.error) return { statusCode: 400, json: { message: em.error } };
+  const sidNorm = normalizeStaffEmployeeId(sid);
+  if (sidNorm.error) return { statusCode: 400, json: { message: sidNorm.error } };
+
+  const existingUser = await User.findOne({ email: em.normalized }).collation({
+    locale: "en",
+    strength: 2,
+  });
+  if (existingUser) {
+    return { statusCode: 400, json: { message: "That email is already registered." } };
+  }
+
+  const hashed = await bcrypt.hash(password, 10);
+  try {
+    await User.create({
+      fname: String(fname).trim(),
+      lname: String(lname).trim(),
+      email: em.normalized,
+      sid: sidNorm.normalized,
+      password: hashed,
+      type: "staff",
+      staffPortalAccess: false,
+      accountStatus: "active",
+    });
+  } catch (e) {
+    if (e && e.code === 11000) {
+      return { statusCode: 400, json: { message: "That email is already registered." } };
+    }
+    throw e;
+  }
+  return { statusCode: 201, json: { message: "Staff account created." } };
+}
+
+async function patchStaffPasswordAction(body) {
+  const { email, password } = body || {};
+  const pwErr = validatePasswordForStaff(password);
+  if (pwErr) return { statusCode: 400, json: { message: pwErr } };
+  const emailLower = String(email || "").trim().toLowerCase();
+  if (!emailLower) return { statusCode: 400, json: { message: "Missing account email." } };
+
+  const user = await User.findOne({ email: emailLower, type: "staff" });
+  if (!user) {
+    return { statusCode: 404, json: { message: "Staff account not found for that email." } };
+  }
+  user.password = await bcrypt.hash(password, 10);
+  await user.save();
+  return { statusCode: 200, json: { message: "Password updated." } };
+}
+
 async function usersAction() {
   const users = await User.find({}, "-password");
   return { statusCode: 200, json: users };
@@ -251,6 +343,8 @@ module.exports = {
   loginAction: (body) => withDb(() => loginAction(body)),
   registerAction: (body) => withDb(() => registerAction(body)),
   adminSetupAction: (body) => withDb(() => adminSetupAction(body)),
+  createStaffAction: (body) => withDb(() => createStaffAction(body)),
+  patchStaffPasswordAction: (body) => withDb(() => patchStaffPasswordAction(body)),
   usersAction: () => withDb(() => usersAction()),
   ensureBuiltinDemoAdminWhenConnected,
 };

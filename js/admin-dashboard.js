@@ -1,7 +1,14 @@
 let session = null;
 
-/** UI-only overrides (not written to MongoDB). */
 const ADMIN_UI_OVERRIDES_KEY = "xu_admin_ui_overrides";
+
+function apiBase() {
+  return (
+    window.XU_API_BASE ||
+    (console.warn("[LibReserve] Load js/xu-api-base.js before admin-dashboard.js"),
+    "http://127.0.0.1:3000/api")
+  );
+}
 
 function readOverrides() {
   try {
@@ -231,14 +238,69 @@ async function submitNewStaff() {
   errEl.style.display = "none";
   const fname = document.getElementById("nfname").value.trim();
   const lname = document.getElementById("nlname").value.trim();
+  const email = document.getElementById("nemail").value.trim();
+  const sid = document.getElementById("nsid").value.trim();
+  const password = document.getElementById("npw").value;
+  const confirm = document.getElementById("ncpw").value;
+
   if (!fname || !lname) {
     errEl.textContent = "Enter the staff member's full name.";
     errEl.style.display = "block";
     return;
   }
-  errEl.style.display = "block";
-  errEl.textContent =
-    "Staff accounts are created in the database only (no POST /api/staff on this server). Add the user in MongoDB, then refresh this page.";
+  const em = validateStaffEmail(email);
+  if (em.error) {
+    errEl.textContent = em.error;
+    errEl.style.display = "block";
+    return;
+  }
+  const sidRes = validateStaffEmployeeId(sid);
+  if (sidRes.error) {
+    errEl.textContent = sidRes.error;
+    errEl.style.display = "block";
+    return;
+  }
+  const pwErr = validatePasswordPolicy(password);
+  if (pwErr) {
+    errEl.textContent = pwErr;
+    errEl.style.display = "block";
+    return;
+  }
+  if (password !== confirm) {
+    errEl.textContent = "Passwords do not match.";
+    errEl.style.display = "block";
+    return;
+  }
+
+  const btn = document.querySelector("#staff-modal .modal-footer .btn-reserve");
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch(`${apiBase()}/staff`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fname,
+        lname,
+        email: em.normalized,
+        sid: sidRes.normalized,
+        password,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      errEl.textContent = data.message || "Could not create staff account.";
+      errEl.style.display = "block";
+      return;
+    }
+    closeStaffModal();
+    await renderUserTable();
+  } catch (e) {
+    console.error(e);
+    errEl.textContent = e.message || "Network error. Try again.";
+    errEl.style.display = "block";
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 function openStaffPwModal(email) {
@@ -259,6 +321,7 @@ async function submitStaffPwReset() {
   errEl.style.display = "none";
   const pw = document.getElementById("rpw").value.trim();
   const cpw = document.getElementById("rcpw").value.trim();
+  const email = document.getElementById("pw-reset-email").value.trim();
   const pwErr = validatePasswordPolicy(pw);
   if (pwErr) {
     errEl.textContent = pwErr;
@@ -270,9 +333,29 @@ async function submitStaffPwReset() {
     errEl.style.display = "block";
     return;
   }
-  errEl.style.display = "block";
-  errEl.textContent =
-    "Passwords are not updated from this panel without a PATCH API. Change the hash in your database or extend the server.";
+
+  const btn = document.getElementById("reset-confirm-btn");
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch(`${apiBase()}/staff`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password: pw }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      errEl.textContent = data.message || "Could not update password.";
+      errEl.style.display = "block";
+      return;
+    }
+    closeStaffPwModal();
+  } catch (e) {
+    console.error(e);
+    errEl.textContent = e.message || "Network error.";
+    errEl.style.display = "block";
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 function logout() {

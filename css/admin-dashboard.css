@@ -1,4 +1,6 @@
-.main {
+/* Admin dashboard — matches AdminDashBoard.html (.main-content, .table-card, …) */
+
+.main-content {
   max-width: 1100px;
   margin: 0 auto;
   padding-top: 2.5rem;
@@ -7,83 +9,126 @@
   padding-left: max(2rem, env(safe-area-inset-left));
 }
 
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
 .page-header h1 {
   font-family: "DM Serif Display", serif;
   font-size: clamp(22px, 5vw, 28px);
   color: var(--text);
+  margin: 0;
 }
 
 .page-header p {
   font-size: 14px;
   color: var(--text-soft);
-  margin-top: 4px;
+  margin-top: 6px;
+  line-height: 1.55;
+  max-width: 42rem;
 }
 
-.admin-badge {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 20px;
-  letter-spacing: 0.05em;
+.header-text {
+  flex: 1 1 280px;
+  min-width: 0;
 }
 
-.toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+.btn-add-staff {
+  display: inline-flex;
   align-items: center;
-  margin-bottom: 1.25rem;
-}
-
-.search-input-admin {
-  flex: 1;
-  min-width: 200px;
-  padding: 8px 14px;
-  border: 1.5px solid var(--border);
-  border-radius: 8px;
-  font-family: "DM Sans", sans-serif;
-  font-size: 13px;
-  background: #fff;
-}
-
-.btn-primary-admin {
-  padding: 9px 18px;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 10px 18px;
   background: var(--navy);
   color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-family: "DM Sans", sans-serif;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px rgba(30, 58, 110, 0.2);
 }
 
-.btn-primary-admin:hover {
+.btn-add-staff:hover {
   background: var(--navy-dark);
 }
 
-.user-table-wrap {
-  background: #fff;
+.btn-add-staff svg {
+  flex-shrink: 0;
+}
+
+/* Table shell */
+.table-card {
+  background: #f0f4f8;
   border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(14, 32, 64, 0.07);
+  padding: 16px 18px 18px;
+  box-shadow: 0 2px 12px rgba(14, 32, 64, 0.06);
+}
+
+.table-toolbar {
+  margin-bottom: 14px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  min-width: 0;
+  padding: 10px 14px;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  box-sizing: border-box;
+}
+
+.search-box svg {
+  flex-shrink: 0;
+  color: var(--text-faint);
+}
+
+.search-box input {
+  flex: 1 1 200px;
+  min-width: 0;
+  border: none;
+  outline: none;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: transparent;
+}
+
+.search-box input::placeholder {
+  color: var(--text-faint);
+}
+
+.table-responsive {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--border);
 }
 
-.user-table-wrap table {
+.table-responsive table {
   width: 100%;
-  min-width: 800px;
+  min-width: 920px;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
-.user-table-wrap thead {
+.table-responsive thead {
   background: var(--off-white);
 }
 
-.user-table-wrap th {
+.table-responsive th {
   padding: 12px 14px;
   text-align: left;
   font-size: 11px;
@@ -91,16 +136,47 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-soft);
+  vertical-align: bottom;
 }
 
-.user-table-wrap td {
+.table-responsive th:nth-child(1) {
+  width: 24%;
+}
+
+.table-responsive th:nth-child(2) {
+  width: 16%;
+}
+
+.table-responsive th:nth-child(3) {
+  width: 10%;
+}
+
+.table-responsive th:nth-child(4) {
+  width: 12%;
+}
+
+.table-responsive th:nth-child(5) {
+  width: 20%;
+}
+
+.table-responsive th:nth-child(6) {
+  width: 18%;
+}
+
+.table-responsive td {
   padding: 12px 14px;
   font-size: 13px;
   border-top: 1px solid var(--off-white);
-  vertical-align: middle;
+  vertical-align: top;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 
-.user-table-wrap tr.inactive td {
+.table-responsive td:nth-child(1) {
+  font-weight: 500;
+}
+
+.table-responsive tr.inactive td {
   opacity: 0.55;
 }
 
@@ -131,19 +207,22 @@
 .toggle-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
 }
 
 .btn-small {
-  padding: 5px 10px;
+  padding: 6px 11px;
   font-size: 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: #fff;
   cursor: pointer;
   font-family: "DM Sans", sans-serif;
   color: var(--text-soft);
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .btn-small:hover {
@@ -165,6 +244,17 @@
   cursor: not-allowed;
 }
 
+.admin-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.05em;
+}
+
+/* Modals */
 .modal-field {
   margin-bottom: 1rem;
 }
@@ -181,11 +271,29 @@
 
 .modal-field input {
   width: 100%;
+  box-sizing: border-box;
   padding: 10px 12px;
   border: 1.5px solid var(--border);
-  border-radius: 8px;
+  border-radius: 9px;
   font-family: "DM Sans", sans-serif;
   font-size: 14px;
+  color: var(--text);
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.modal-field input:focus {
+  outline: none;
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px rgba(30, 58, 110, 0.08);
+}
+
+.modal-field input:-webkit-autofill,
+.modal-field input:-webkit-autofill:hover,
+.modal-field input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #fff inset;
+  box-shadow: 0 0 0 1000px #fff inset;
+  -webkit-text-fill-color: var(--text);
 }
 
 .hint {
@@ -195,26 +303,80 @@
   line-height: 1.5;
 }
 
-#staff-form-err.alert.error {
+.modal-body .alert.error,
+.modal-body .alert.success {
   font-size: 13px;
   padding: 10px 14px;
   border-radius: 8px;
-  border-left: 3px solid var(--danger);
+  margin-bottom: 12px;
+  border-left: 3px solid;
+}
+
+.modal-body .alert.error {
   background: #fdf2f2;
   color: var(--danger);
+  border-color: var(--danger);
+}
+
+.modal-body .alert.success {
+  background: #f0f9f4;
+  color: var(--success);
+  border-color: var(--success);
+}
+
+/* Footer buttons (not in student-dashboard.css on this page) */
+.modal-footer .btn-cancel {
+  flex: 1;
+  padding: 11px 14px;
+  background: var(--off-white);
+  border: none;
+  border-radius: 10px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.modal-footer .btn-cancel:hover {
+  background: var(--border);
+}
+
+.modal-footer .btn-reserve {
+  flex: 2;
+  padding: 11px 14px;
+  background: var(--navy);
+  border: none;
+  border-radius: 10px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.modal-footer .btn-reserve:hover {
+  background: var(--navy-dark);
+}
+
+.modal-footer .btn-reserve:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {
-  .main {
+  .main-content {
     padding: 1.25rem max(12px, env(safe-area-inset-right)) 2rem max(12px, env(safe-area-inset-left));
   }
 
-  .toolbar {
+  .page-header {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .search-input-admin {
+  .btn-add-staff {
     width: 100%;
   }
 }

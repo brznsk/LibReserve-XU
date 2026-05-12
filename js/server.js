@@ -4,6 +4,12 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
+const {
+    validatePasswordPolicy,
+    validateStaffEmail,
+    validateStaffEmployeeId,
+} = require('./register-validation');
+
 const app = express();
 app.use(express.json());
 app.use(cors());
@@ -145,7 +151,6 @@ async function seedRoomsIfEmpty() {
     await Room.insertMany(DEFAULT_ROOMS);
 }
 
-/** README demo admin — created only if admin@xu.edu.ph is not in the database. */
 async function ensureBuiltinDemoAdmin() {
     const email = 'admin@xu.edu.ph';
     const exists = await User.findOne({ email });
@@ -435,6 +440,67 @@ app.get('/api/users', async (req, res) => {
         res.json(users);
     } catch (err) {
         res.status(500).json({ message: "Could not fetch users." });
+    }
+});
+
+// 5. Admin: create staff account
+app.post('/api/staff', async (req, res) => {
+    try {
+        const { fname, lname, email, sid, password } = req.body || {};
+        if (!String(fname || '').trim() || !String(lname || '').trim()) {
+            return res.status(400).json({ message: 'Enter first and last name.' });
+        }
+        const pwErr = validatePasswordPolicy(password);
+        if (pwErr) return res.status(400).json({ message: pwErr });
+        const em = validateStaffEmail(email);
+        if (em.error) return res.status(400).json({ message: em.error });
+        const sidNorm = validateStaffEmployeeId(sid);
+        if (sidNorm.error) return res.status(400).json({ message: sidNorm.error });
+
+        const existingUser = await User.findOne({ email: em.normalized }).collation({ locale: 'en', strength: 2 });
+        if (existingUser) {
+            return res.status(400).json({ message: 'That email is already registered.' });
+        }
+        const hashed = await bcrypt.hash(password, 10);
+        await User.create({
+            fname: String(fname).trim(),
+            lname: String(lname).trim(),
+            email: em.normalized,
+            sid: sidNorm.normalized,
+            password: hashed,
+            type: 'staff',
+            staffPortalAccess: false,
+            accountStatus: 'active',
+        });
+        res.status(201).json({ message: 'Staff account created.' });
+    } catch (err) {
+        console.error(err);
+        if (err && err.code === 11000) {
+            return res.status(400).json({ message: 'That email is already registered.' });
+        }
+        res.status(500).json({ message: 'Could not create staff account.' });
+    }
+});
+
+// 6. Admin: reset staff password
+app.patch('/api/staff', async (req, res) => {
+    try {
+        const { email, password } = req.body || {};
+        const pwErr = validatePasswordPolicy(password);
+        if (pwErr) return res.status(400).json({ message: pwErr });
+        const emailLower = String(email || '').trim().toLowerCase();
+        if (!emailLower) return res.status(400).json({ message: 'Missing account email.' });
+
+        const user = await User.findOne({ email: emailLower, type: 'staff' });
+        if (!user) {
+            return res.status(404).json({ message: 'Staff account not found for that email.' });
+        }
+        user.password = await bcrypt.hash(password, 10);
+        await user.save();
+        res.json({ message: 'Password updated.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Could not update password.' });
     }
 });
 
