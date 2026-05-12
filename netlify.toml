@@ -6,3 +6,7 @@
 
 [build.environment]
   NODE_VERSION = "20"
+
+# Mongoose: NFT trace is more reliable than default esbuild for some native deps
+[functions]
+  node_bundler = "nft"

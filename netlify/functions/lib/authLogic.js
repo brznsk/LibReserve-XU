@@ -1,8 +1,6 @@
-/**
- * Keep in sync with js/server.js login / register / users behavior.
- */
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const { getMongoUriOrThrow } = require("./mongoUri");
 
 const userSchema = new mongoose.Schema({
   fname: { type: String, required: true },
@@ -22,12 +20,12 @@ let connectPromise = null;
 
 async function ensureDb() {
   if (mongoose.connection.readyState === 1) return;
-  const uri = process.env.MONGODB_URI;
-  if (!uri) throw new Error("MONGODB_URI is not set in Netlify environment variables.");
+  const uri = getMongoUriOrThrow();
   if (!connectPromise) {
     connectPromise = mongoose.connect(uri, {
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 15000,
+      maxPoolSize: 5,
+      serverSelectionTimeoutMS: 8000,
+      connectTimeoutMS: 8000,
     });
   }
   await connectPromise;

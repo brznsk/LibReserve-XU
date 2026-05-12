@@ -43,13 +43,33 @@ exports.handler = async (event) => {
         body: JSON.stringify({ message: "Email already registered." }),
       };
     }
-    if (String(err.message || "").includes("MONGODB_URI")) {
+    if (err.code === "MISSING_MONGODB_URI") {
+      return {
+        statusCode: 503,
+        headers,
+        body: JSON.stringify({
+          message: err.message,
+        }),
+      };
+    }
+    const msg = String(err.message || "");
+    if (msg.includes("MONGODB_URI")) {
       return {
         statusCode: 503,
         headers,
         body: JSON.stringify({
           message:
-            "Database not configured. Set MONGODB_URI for Functions in Netlify, then redeploy.",
+            "Database not configured. Set MONGODB_URI in Netlify (secret, **Functions** scope), redeploy, and confirm Atlas Network Access allows 0.0.0.0/0.",
+        }),
+      };
+    }
+    if (err.name === "MongoServerSelectionError" || err.name === "MongoNetworkError") {
+      return {
+        statusCode: 503,
+        headers,
+        body: JSON.stringify({
+          message:
+            "Cannot reach MongoDB. Check Atlas Network Access (add 0.0.0.0/0), database user/password in MONGODB_URI, and that the cluster is running.",
         }),
       };
     }

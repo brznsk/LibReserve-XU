@@ -1,18 +1,16 @@
-/**
- * Rooms + reservations for Netlify Functions (keep in sync with js/server.js).
- */
 const mongoose = require("mongoose");
+const { getMongoUriOrThrow } = require("./mongoUri");
 
 let connectPromise = null;
 
 async function ensureDb() {
   if (mongoose.connection.readyState === 1) return;
-  const uri = process.env.MONGODB_URI;
-  if (!uri) throw new Error("MONGODB_URI is not set in Netlify environment variables.");
+  const uri = getMongoUriOrThrow();
   if (!connectPromise) {
     connectPromise = mongoose.connect(uri, {
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 15000,
+      maxPoolSize: 5,
+      serverSelectionTimeoutMS: 8000,
+      connectTimeoutMS: 8000,
     });
   }
   await connectPromise;

@@ -37,9 +37,27 @@ async function doRegister() {
       }),
     });
 
-    const result = await response.json();
+    let result = {};
+    try {
+      result = await response.json();
+    } catch (_) {
+      if (!response.ok) {
+        throw new Error(
+          "Server returned " +
+            response.status +
+            " with no JSON body. If this is Netlify, check Functions logs and MONGODB_URI (Functions scope + redeploy)."
+        );
+      }
+    }
 
-    if (!response.ok) throw new Error(result.message || "Registration failed.");
+    if (!response.ok) {
+      throw new Error(
+        result.message ||
+          (response.status === 503
+            ? "Service unavailable (often missing MONGODB_URI for Functions or MongoDB unreachable). Check Netlify env + Atlas."
+            : "Registration failed.")
+      );
+    }
 
     sessionStorage.setItem("xu_session", JSON.stringify(result));
     showAlert("success", "Welcome! Taking you to your dashboard...");

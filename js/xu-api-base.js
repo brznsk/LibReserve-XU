@@ -13,14 +13,10 @@
     /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h) ||
     /^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(h);
 
-  /** After you add a custom domain in Netlify, put the hostname here (no https). */
-  const NETLIFY_PRODUCTION_HOSTS = [];
+  const NETLIFY_PRODUCTION_HOSTS = [libreserve-xu.netlify.app];
 
   const useNetlifyFunctions =
     h.endsWith(".netlify.app") || NETLIFY_PRODUCTION_HOSTS.indexOf(h) !== -1;
-
-  /** If you host the static site somewhere other than Netlify, set your API base URL. */
-  const REMOTE_API_FALLBACK = "https://your-railway-app-name.up.railway.app/api";
 
   if (isLoopback || isPrivateLan) {
     window.XU_API_BASE = "http://127.0.0.1:3000/api";

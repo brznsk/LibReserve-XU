@@ -17,6 +17,8 @@ This app uses **MongoDB Atlas** for **users**, **confab rooms** (`rooms` collect
 
 **Atlas:** **Network Access** must allow **`0.0.0.0/0`** (or Netlify will fail to connect).
 
+**If registration or login returns HTTP 503:** the `register` / `login` function usually cannot read **`MONGODB_URI`** (wrong or missing **Functions** scope), the value is blank, or MongoDB is unreachable. Fix the variable, **redeploy**, and confirm Atlas allows **`0.0.0.0/0`**.
+
 ---
 
 ## 2. Deploy from GitHub to Netlify

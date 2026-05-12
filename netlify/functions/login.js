@@ -27,9 +27,12 @@ exports.handler = async (event) => {
   } catch (err) {
     console.error("login function error:", err.message || err);
     let message = "Server error during login.";
-    if (String(err.message || "").includes("MONGODB_URI")) {
+    if (err.code === "MISSING_MONGODB_URI" || String(err.message || "").includes("MONGODB_URI")) {
       message =
-        "Database not configured: add MONGODB_URI in Netlify → Environment variables, then redeploy.";
+        "Database not configured: add MONGODB_URI in Netlify (secret, **Functions** scope), redeploy, and allow Atlas from 0.0.0.0/0.";
+    } else if (err.name === "MongoServerSelectionError" || err.name === "MongoNetworkError") {
+      message =
+        "Cannot reach MongoDB. Check Atlas IP allowlist and MONGODB_URI (user/password, cluster host).";
     }
     return {
       statusCode: 500,
