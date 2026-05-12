@@ -1,10 +1,14 @@
 const mongoose = require("mongoose");
 const { getMongoUriOrThrow } = require("./mongoUri");
+const { ensureBuiltinDemoAdminWhenConnected } = require("./authLogic");
 
 let connectPromise = null;
 
 async function ensureDb() {
-  if (mongoose.connection.readyState === 1) return;
+  if (mongoose.connection.readyState === 1) {
+    await ensureBuiltinDemoAdminWhenConnected();
+    return;
+  }
   const uri = getMongoUriOrThrow();
   if (!connectPromise) {
     connectPromise = mongoose.connect(uri, {
@@ -14,6 +18,7 @@ async function ensureDb() {
     });
   }
   await connectPromise;
+  await ensureBuiltinDemoAdminWhenConnected();
 }
 
 const DEFAULT_ROOMS = [

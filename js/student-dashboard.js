@@ -83,6 +83,12 @@ function escapeHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
+function setButtonLoading(btn, loading) {
+  if (!btn) return;
+  btn.classList.toggle("is-loading", !!loading);
+  btn.disabled = !!loading;
+}
+
 function scheduleEventBlockStyle(dateStr, startTime, endTime) {
   const win = reservationLibraryHoursWindow(dateStr);
   if (!win || win.closed) return null;
@@ -467,6 +473,8 @@ function renderScheduleWeek() {
 function renderRooms() {
   const grid = document.getElementById("rooms-grid");
   if (!grid) return;
+  grid.classList.remove("rooms-grid--loading");
+  grid.removeAttribute("aria-busy");
   if (!rooms.length) {
     grid.innerHTML =
       '<p style="color:var(--text-soft);padding:2rem">No rooms loaded. Check the server and try refreshing.</p>';
@@ -621,8 +629,7 @@ async function submitReservation() {
     submittedAt: new Date().toISOString(),
   };
 
-  btn.textContent = "Submitting…";
-  btn.disabled = true;
+  setButtonLoading(btn, true);
   try {
     await createReservationOnApi(payload);
     reservationsCache = await fetchReservationsFromApi();
@@ -631,8 +638,7 @@ async function submitReservation() {
     console.error(e);
     showModalMsg("error", e.message || "Could not save reservation. Try again.");
   } finally {
-    btn.textContent = "Submit Reservation";
-    btn.disabled = false;
+    setButtonLoading(btn, false);
   }
 }
 
@@ -709,23 +715,31 @@ async function cancelStudentReservation(id) {
   }
 }
 
-function trackReservation() {
+async function trackReservation() {
+  const btn = document.getElementById("track-lookup-btn");
   const code = document.getElementById("track-code").value.trim().toUpperCase();
-  const all = reservationsCache;
-  const res = all.find((r) => r.id && String(r.id).toUpperCase() === code);
   const resultEl = document.getElementById("track-result");
-  if (!res) {
-    resultEl.innerHTML = '<div style="color:var(--danger);">Tracking code not found.</div>';
-    resultEl.style.display = "block";
-    return;
-  }
-  const statusColors = {
-    pending: "#b8860b",
-    approved: "var(--success)",
-    rejected: "var(--danger)",
-    cancelled: "#6b7280",
-  };
-  resultEl.innerHTML = `
+  setButtonLoading(btn, true);
+  try {
+    try {
+      reservationsCache = await fetchReservationsFromApi();
+    } catch (e) {
+      console.error(e);
+    }
+    const all = reservationsCache;
+    const res = all.find((r) => r.id && String(r.id).toUpperCase() === code);
+    if (!res) {
+      resultEl.innerHTML = '<div style="color:var(--danger);">Tracking code not found.</div>';
+      resultEl.style.display = "block";
+      return;
+    }
+    const statusColors = {
+      pending: "#b8860b",
+      approved: "var(--success)",
+      rejected: "var(--danger)",
+      cancelled: "#6b7280",
+    };
+    resultEl.innerHTML = `
     <div class="tr-row"><span class="tr-label">Room</span><span class="tr-val">${res.roomName}</span></div>
     <div class="tr-row"><span class="tr-label">Date</span><span class="tr-val">${res.date}</span></div>
     <div class="tr-row"><span class="tr-label">Time</span><span class="tr-val">${res.startTime} – ${res.endTime}</span></div>
@@ -746,7 +760,10 @@ function trackReservation() {
         : ""
     }
   `;
-  resultEl.style.display = "block";
+    resultEl.style.display = "block";
+  } finally {
+    setButtonLoading(btn, false);
+  }
 }
 
 function logout() {

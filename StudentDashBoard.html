@@ -42,7 +42,12 @@
   </div>
 
   <div id="tab-rooms">
-    <div class="rooms-grid" id="rooms-grid"></div>
+    <div class="rooms-grid rooms-grid--loading" id="rooms-grid" aria-busy="true">
+      <div class="rooms-loading">
+        <span class="rooms-loading-spinner" aria-hidden="true"></span>
+        <p>Loading Confab rooms…</p>
+      </div>
+    </div>
   </div>
 
   <div id="tab-my-reservations" style="display:none">
@@ -55,14 +60,17 @@
   </div>
 
   <div id="tab-track" style="display:none">
-    <div class="history-section">
-      <h3>Track a reservation</h3>
-      <p style="color:var(--text-soft);margin-bottom:12px">Enter your tracking code (e.g. REQ-1234567).</p>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-        <input type="text" id="track-code" placeholder="REQ-…" style="flex:1;min-width:180px;padding:10px 12px;border-radius:8px;border:1.5px solid var(--border)"/>
-        <button type="button" class="btn-reserve" onclick="trackReservation()">Look up</button>
+    <div class="track-panel">
+      <h3 class="track-panel-title">Track a reservation</h3>
+      <p class="track-panel-lead">Enter your tracking code (e.g. REQ-1234567).</p>
+      <div class="track-panel-row">
+        <input type="text" id="track-code" class="track-code-input" placeholder="REQ-…" autocomplete="off"/>
+        <button type="button" class="btn-reserve btn-loading" id="track-lookup-btn" onclick="trackReservation()">
+          <span class="btn-loading-label">Look up</span>
+          <span class="btn-loading-spinner" aria-hidden="true"></span>
+        </button>
       </div>
-      <div id="track-result" style="display:none;margin-top:16px;padding:16px;background:#fff;border-radius:12px;border:1px solid var(--border)"></div>
+      <div id="track-result" class="track-result" style="display:none" role="status"></div>
     </div>
   </div>
 </div>
@@ -73,22 +81,40 @@
       <h3 id="selected-room-label">Reserve room</h3>
       <button type="button" class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
     </div>
-    <div class="modal-body">
-      <div class="alert error" id="modal-error" style="display:none"></div>
-      <div class="alert success" id="modal-success" style="display:none"></div>
-      <p id="booking-library-hours-hint" class="booking-hint" style="font-size:13px;color:var(--text-soft);margin-bottom:12px;line-height:1.5"></p>
-      <div class="field"><label for="m-members">Group members</label>
-        <textarea id="m-members" rows="4" placeholder="1. Name – School ID&#10;2. …"></textarea>
+    <div class="modal-body booking-modal-body">
+      <div class="alert-modal error" id="modal-error" style="display:none"></div>
+      <div class="alert-modal success" id="modal-success" style="display:none"></div>
+      <p id="booking-library-hours-hint" class="booking-hint booking-modal-hint"></p>
+      <div class="booking-form">
+        <div class="f-group f-group--full">
+          <label for="m-members">Group members</label>
+          <textarea id="m-members" rows="4" class="booking-textarea" placeholder="1. Name – School ID&#10;2. …"></textarea>
+        </div>
+        <div class="f-group f-group--full">
+          <label for="m-date">Date</label>
+          <input type="date" id="m-date"/>
+        </div>
+        <div class="form-grid">
+          <div class="f-group">
+            <label for="m-start">Start</label>
+            <input type="time" id="m-start"/>
+          </div>
+          <div class="f-group">
+            <label for="m-end">End</label>
+            <input type="time" id="m-end"/>
+          </div>
+        </div>
+        <div class="f-group f-group--full">
+          <label for="m-purpose">Purpose</label>
+          <textarea id="m-purpose" rows="3" class="booking-textarea" placeholder="Study session, thesis defense prep, …"></textarea>
+        </div>
       </div>
-      <div class="field"><label for="m-date">Date</label><input type="date" id="m-date"/></div>
-      <div class="time-row">
-        <div class="field"><label for="m-start">Start</label><input type="time" id="m-start"/></div>
-        <div class="field"><label for="m-end">End</label><input type="time" id="m-end"/></div>
-      </div>
-      <div class="field"><label for="m-purpose">Purpose</label><textarea id="m-purpose" rows="2" placeholder="Study session, thesis defense prep, …"></textarea></div>
     </div>
-    <div class="modal-footer">
-      <button type="button" class="btn-reserve" id="submit-btn" onclick="submitReservation()">Submit request</button>
+    <div class="modal-footer booking-modal-footer">
+      <button type="button" class="btn-reserve btn-loading" id="submit-btn" onclick="submitReservation()">
+        <span class="btn-loading-label">Submit request</span>
+        <span class="btn-loading-spinner" aria-hidden="true"></span>
+      </button>
     </div>
   </div>
 </div>

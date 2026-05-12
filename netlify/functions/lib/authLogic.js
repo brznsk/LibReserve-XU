@@ -18,8 +18,40 @@ const User = mongoose.models.User || mongoose.model("User", userSchema);
 
 let connectPromise = null;
 
+let builtinAdminSeedAttempted = false;
+
+/**
+ * README demo admin (MongoDB). Idempotent: creates only if admin@xu.edu.ph is absent.
+ */
+async function ensureBuiltinDemoAdminWhenConnected() {
+  if (mongoose.connection.readyState !== 1) return;
+  if (builtinAdminSeedAttempted) return;
+  builtinAdminSeedAttempted = true;
+  const email = "admin@xu.edu.ph";
+  try {
+    const exists = await User.findOne({ email });
+    if (exists) return;
+    const hashed = await bcrypt.hash("LibraryAdmin!24", 10);
+    await User.create({
+      fname: "Library",
+      lname: "Administrator",
+      email,
+      password: hashed,
+      type: "admin",
+      accountStatus: "active",
+    });
+  } catch (e) {
+    if (e && e.code === 11000) return;
+    console.error("ensureBuiltinDemoAdmin:", e && e.message);
+    builtinAdminSeedAttempted = false;
+  }
+}
+
 async function ensureDb() {
-  if (mongoose.connection.readyState === 1) return;
+  if (mongoose.connection.readyState === 1) {
+    await ensureBuiltinDemoAdminWhenConnected();
+    return;
+  }
   const uri = getMongoUriOrThrow();
   if (!connectPromise) {
     connectPromise = mongoose.connect(uri, {
@@ -29,6 +61,7 @@ async function ensureDb() {
     });
   }
   await connectPromise;
+  await ensureBuiltinDemoAdminWhenConnected();
 }
 
 function sessionPayload(userDoc, responseType, loginRole) {
@@ -222,4 +255,5 @@ module.exports = {
   registerAction: (body) => withDb(() => registerAction(body)),
   adminSetupAction: (body) => withDb(() => adminSetupAction(body)),
   usersAction: () => withDb(() => usersAction()),
+  ensureBuiltinDemoAdminWhenConnected,
 };

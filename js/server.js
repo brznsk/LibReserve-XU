@@ -9,7 +9,14 @@ app.use(express.json());
 app.use(cors());
 
 mongoose.connect(process.env.MONGODB_URI)
-    .then(() => console.log("Connected to MongoDB Atlas"))
+    .then(async () => {
+        console.log("Connected to MongoDB Atlas");
+        try {
+            await ensureBuiltinDemoAdmin();
+        } catch (e) {
+            if (e && e.code !== 11000) console.error("Builtin admin seed:", e);
+        }
+    })
     .catch(err => console.error("DB Connection Error:", err));
 
 const userSchema = new mongoose.Schema({
@@ -136,6 +143,22 @@ async function seedRoomsIfEmpty() {
     const n = await Room.countDocuments();
     if (n > 0) return;
     await Room.insertMany(DEFAULT_ROOMS);
+}
+
+/** README demo admin — created only if admin@xu.edu.ph is not in the database. */
+async function ensureBuiltinDemoAdmin() {
+    const email = 'admin@xu.edu.ph';
+    const exists = await User.findOne({ email });
+    if (exists) return;
+    const hashed = await bcrypt.hash('LibraryAdmin!24', 10);
+    await User.create({
+        fname: 'Library',
+        lname: 'Administrator',
+        email,
+        password: hashed,
+        type: 'admin',
+        accountStatus: 'active',
+    });
 }
 
 /** Session object for client (mirrors JWT claims: type + loginRole). */
