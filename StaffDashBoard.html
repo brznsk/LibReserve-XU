@@ -30,8 +30,57 @@
 </nav>
 
 <div class="main-content">
+  <header class="page-header">
+    <div>
+      <h1>Reservation Management</h1>
+      <p>Review, approve, or reject student confab room reservation requests.</p>
+    </div>
+  </header>
+
+  <div class="desk-local-notice">
+    Reservations stay in <b>this browser</b> only. Students and staff should open the site the same way (same link).
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Total requests</div>
+      <div class="stat-val" id="stat-total">0</div>
+      <div class="stat-sub">all time</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Pending</div>
+      <div class="stat-val" id="stat-pending">0</div>
+      <div class="stat-sub">awaiting action</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Approved</div>
+      <div class="stat-val" id="stat-approved">0</div>
+      <div class="stat-sub">confirmed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Rejected</div>
+      <div class="stat-val" id="stat-rejected">0</div>
+      <div class="stat-sub">declined</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button type="button" class="tab active" onclick="switchTab('all', this)">All Requests</button>
+    <button type="button" class="tab" onclick="switchTab('pending', this)">Pending</button>
+    <button type="button" class="tab" onclick="switchTab('approved', this)">Approved</button>
+    <button type="button" class="tab" onclick="switchTab('rejected', this)">Rejected</button>
+  </div>
+
   <div class="desk-toolbar">
-    <input type="text" id="search-input" placeholder="Search live requests..." oninput="renderTable()"/>
+    <input type="text" id="search-input" placeholder="Search by student, room, or code..." oninput="renderTable()"/>
+    <div class="desk-sort-wrap">
+      <label for="desk-sort">Submitted</label>
+      <select id="desk-sort" class="desk-sort-select" onchange="renderTable()">
+        <option value="oldest">Oldest → newest</option>
+        <option value="newest">Newest → oldest</option>
+      </select>
+    </div>
+    <button type="button" class="btn-refresh-list" onclick="refreshList()">Refresh list</button>
   </div>
 
   <div class="res-table-wrap">

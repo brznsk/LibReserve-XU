@@ -334,6 +334,39 @@ async function usersAction() {
   return { statusCode: 200, json: users };
 }
 
+async function patchUserAction(body) {
+  const { email } = body || {};
+  const emailLower = String(email || "").trim().toLowerCase();
+  if (!emailLower) return { statusCode: 400, json: { message: "Missing email." } };
+
+  const user = await User.findOne({ email: emailLower });
+  if (!user) return { statusCode: 404, json: { message: "User not found." } };
+
+  const { accountStatus, staffPortalAccess } = body || {};
+  let changed = false;
+
+  if (accountStatus === "active" || accountStatus === "inactive") {
+    user.accountStatus = accountStatus;
+    changed = true;
+  }
+
+  // Only students may be granted desk access; staff access is controlled by activation only.
+  if (typeof staffPortalAccess === "boolean") {
+    if (user.type !== "student") {
+      return { statusCode: 400, json: { message: "Only students may be granted desk access." } };
+    }
+    user.staffPortalAccess = staffPortalAccess;
+    changed = true;
+  }
+
+  if (!changed) return { statusCode: 400, json: { message: "No valid fields to update." } };
+
+  await user.save();
+  const out = user.toObject();
+  delete out.password;
+  return { statusCode: 200, json: out };
+}
+
 async function withDb(fn) {
   await ensureDb();
   return fn();
@@ -346,5 +379,6 @@ module.exports = {
   createStaffAction: (body) => withDb(() => createStaffAction(body)),
   patchStaffPasswordAction: (body) => withDb(() => patchStaffPasswordAction(body)),
   usersAction: () => withDb(() => usersAction()),
+  patchUserAction: (body) => withDb(() => patchUserAction(body)),
   ensureBuiltinDemoAdminWhenConnected,
 };

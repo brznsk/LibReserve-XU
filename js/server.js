@@ -443,6 +443,40 @@ app.get('/api/users', async (req, res) => {
     }
 });
 
+// 4b. Admin: update a user (persist to DB)
+app.patch('/api/users', async (req, res) => {
+    try {
+        const { email, accountStatus, staffPortalAccess } = req.body || {};
+        const emailLower = String(email || '').trim().toLowerCase();
+        if (!emailLower) return res.status(400).json({ message: 'Missing email.' });
+
+        const user = await User.findOne({ email: emailLower });
+        if (!user) return res.status(404).json({ message: 'User not found.' });
+
+        let changed = false;
+        if (accountStatus === 'active' || accountStatus === 'inactive') {
+            user.accountStatus = accountStatus;
+            changed = true;
+        }
+        if (typeof staffPortalAccess === 'boolean') {
+            if (user.type !== 'student') {
+                return res.status(400).json({ message: 'Only students may be granted desk access.' });
+            }
+            user.staffPortalAccess = staffPortalAccess;
+            changed = true;
+        }
+
+        if (!changed) return res.status(400).json({ message: 'No valid fields to update.' });
+        await user.save();
+        const out = user.toObject();
+        delete out.password;
+        res.json(out);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Could not update user.' });
+    }
+});
+
 // 5. Admin: create staff account
 app.post('/api/staff', async (req, res) => {
     try {

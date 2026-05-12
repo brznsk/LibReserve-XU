@@ -374,6 +374,18 @@ function showPageAlert(type, text) {
   }, 4000);
 }
 
+async function refreshList() {
+  try {
+    await refreshStaffReservationsFromApi();
+    updateStats();
+    renderTable();
+    showPageAlert("success", "Refresh complete.");
+  } catch (e) {
+    console.error(e);
+    showPageAlert("error", e.message || "Could not refresh.");
+  }
+}
+
 function logout() {
   sessionStorage.removeItem("xu_session");
   window.location.href = "LogIn.html";

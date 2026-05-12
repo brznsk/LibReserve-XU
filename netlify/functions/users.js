@@ -1,4 +1,5 @@
-const { usersAction } = require("./lib/authLogic");
+const { usersAction, patchUserAction } = require("./lib/authLogic");
+const { parseJsonBody } = require("./lib/parseEventBody");
 
 const headers = {
   "Content-Type": "application/json",
@@ -8,7 +9,7 @@ exports.handler = async (event) => {
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 204, headers, body: "" };
   }
-  if (event.httpMethod !== "GET") {
+  if (event.httpMethod !== "GET" && event.httpMethod !== "PATCH") {
     return {
       statusCode: 405,
       headers,
@@ -16,7 +17,8 @@ exports.handler = async (event) => {
     };
   }
   try {
-    const r = await usersAction();
+    const r =
+      event.httpMethod === "PATCH" ? await patchUserAction(parseJsonBody(event)) : await usersAction();
     return {
       statusCode: r.statusCode,
       headers,

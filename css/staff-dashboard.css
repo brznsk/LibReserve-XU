@@ -33,6 +33,26 @@
   background: #fff;
 }
 
+.btn-refresh-list {
+  flex-shrink: 0;
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: var(--navy);
+  font-family: "DM Sans", sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+
+.btn-refresh-list:hover {
+  background: var(--off-white);
+  border-color: var(--navy-light);
+}
+
 .page-header {
   margin-bottom: 2rem;
   display: flex;

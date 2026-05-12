@@ -23,14 +23,8 @@ function writeOverrides(obj) {
   localStorage.setItem(ADMIN_UI_OVERRIDES_KEY, JSON.stringify(obj));
 }
 
-function mergeUser(u) {
-  const part = readOverrides()[u.email.toLowerCase()] || {};
-  return { ...u, ...part };
-}
-
 async function getDisplayUsers() {
-  const api = await getUsers();
-  return api.map(mergeUser);
+  return await getUsers();
 }
 
 function countActiveAdmins(users) {
@@ -75,7 +69,6 @@ function onTableClick(e) {
   const email = decodeURIComponent(btn.getAttribute("data-email"));
   const act = btn.getAttribute("data-act");
   if (act === "assist") void toggleAssistant(email);
-  if (act === "staffdesk") void toggleStaffDeskLogin(email);
   if (act === "active") void toggleUserActive(email);
   if (act === "staffpw") openStaffPwModal(email);
 }
@@ -105,23 +98,16 @@ async function renderUserTable() {
       let privBtn = "";
       if (u.type === "student") {
         privCell = u.staffPortalAccess
-          ? '<span class="status-badge status-approved">Assistant tag</span>'
-          : '<span style="color:var(--text-faint)">—</span>';
-        if (!isSelf) {
-          privBtn = `<button type="button" class="btn-small" data-act="assist" data-email="${encodeURIComponent(
-            u.email
-          )}">${u.staffPortalAccess ? "Remove tag" : "Tag assistant"}</button>`;
-        }
-      } else if (u.type === "staff") {
-        const deskOk = u.staffPortalAccess === true;
-        privCell = deskOk
           ? '<span class="status-badge status-approved">Desk login</span>'
           : '<span style="color:var(--text-faint)">No desk login</span>';
         if (!isSelf) {
-          privBtn = `<button type="button" class="btn-small" data-act="staffdesk" data-email="${encodeURIComponent(
+          privBtn = `<button type="button" class="btn-small" data-act="assist" data-email="${encodeURIComponent(
             u.email
-          )}">${deskOk ? "Revoke desk login" : "Grant desk login"}</button>`;
+          )}">${u.staffPortalAccess ? "Revoke desk access" : "Grant desk access"}</button>`;
         }
+      } else if (u.type === "staff") {
+        privCell = '<span style="color:var(--text-faint)">—</span>';
+        privBtn = "";
       }
 
       const deactivateLabel = inactive ? "Activate" : "Deactivate";
@@ -186,10 +172,16 @@ async function toggleUserActive(email) {
       return;
     }
   }
-  const key = email.toLowerCase();
-  const overrides = readOverrides();
-  overrides[key] = { ...(overrides[key] || {}), accountStatus: next };
-  writeOverrides(overrides);
+  const res = await fetch(`${apiBase()}/users`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, accountStatus: next }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    alert(data.message || "Could not update user.");
+    return;
+  }
   await renderUserTable();
 }
 
@@ -197,21 +189,16 @@ async function toggleAssistant(email) {
   const users = await getDisplayUsers();
   const u = users.find((x) => x.email.toLowerCase() === email.toLowerCase());
   if (!u || u.type !== "student") return;
-  const key = email.toLowerCase();
-  const overrides = readOverrides();
-  overrides[key] = { ...(overrides[key] || {}), staffPortalAccess: !u.staffPortalAccess };
-  writeOverrides(overrides);
-  await renderUserTable();
-}
-
-async function toggleStaffDeskLogin(email) {
-  const users = await getDisplayUsers();
-  const u = users.find((x) => x.email.toLowerCase() === email.toLowerCase());
-  if (!u || u.type !== "staff") return;
-  const key = email.toLowerCase();
-  const overrides = readOverrides();
-  overrides[key] = { ...(overrides[key] || {}), staffPortalAccess: !u.staffPortalAccess };
-  writeOverrides(overrides);
+  const res = await fetch(`${apiBase()}/users`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, staffPortalAccess: !u.staffPortalAccess }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    alert(data.message || "Could not update user.");
+    return;
+  }
   await renderUserTable();
 }
 
