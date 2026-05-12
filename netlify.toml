@@ -1,5 +1,8 @@
 [build]
+  # Ensures node_modules exists for Netlify Functions when deploying from GitHub
+  command = "npm install"
   publish = "."
   functions = "netlify/functions"
 
-# Same-origin; no extra redirects required for /.netlify/functions/*
+[build.environment]
+  NODE_VERSION = "20"

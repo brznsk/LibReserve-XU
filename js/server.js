@@ -115,7 +115,7 @@ app.post('/api/login', async (req, res) => {
 // 2. Student Registration — returns session so client can auto-login
 app.post('/api/register', async (req, res) => {
     try {
-            const { fname, lname, sid, email, password, type } = req.body || {};
+        const { fname, lname, sid, email, password, type } = req.body || {};
         const emailLower = String(email || '').trim().toLowerCase();
 
         if (!emailLower || !String(fname || '').trim() || !String(lname || '').trim() || !password) {
@@ -160,7 +160,44 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
-// 3. Get All Users
+// First admin only (matches Netlify admin-setup function)
+app.post('/api/admin-setup', async (req, res) => {
+    try {
+        const adminCount = await User.countDocuments({ type: 'admin' });
+        if (adminCount > 0) {
+            return res.status(403).json({ message: 'An administrator already exists. Sign in from the login page.' });
+        }
+        const { fname, lname, email, password, type } = req.body || {};
+        if (type !== 'admin') {
+            return res.status(400).json({ message: 'Invalid account type.' });
+        }
+        const emailLower = String(email || '').trim().toLowerCase();
+        if (!emailLower || !/^[^\s@]+@xu\.edu\.ph$/i.test(emailLower)) {
+            return res.status(400).json({ message: 'Administrator email must be your official @xu.edu.ph address.' });
+        }
+        if (!String(fname || '').trim() || !String(lname || '').trim() || !password) {
+            return res.status(400).json({ message: 'Please fill in all required fields.' });
+        }
+        const existingUser = await User.findOne({ email: emailLower }).collation({ locale: 'en', strength: 2 });
+        if (existingUser) {
+            return res.status(400).json({ message: 'That email is already registered.' });
+        }
+        const hashed = await bcrypt.hash(password, 10);
+        await User.create({
+            fname: String(fname).trim(),
+            lname: String(lname).trim(),
+            email: emailLower,
+            password: hashed,
+            type: 'admin',
+        });
+        res.status(201).json({ message: 'Administrator created successfully.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Could not create administrator.' });
+    }
+});
+
+// 4. Get All Users
 app.get('/api/users', async (req, res) => {
     try {
         const users = await User.find({}, '-password');

@@ -1,8 +1,8 @@
 # LibReserve — Confab Reservation System
 
-Static front-end app for library Confab rooms 1–6 at Xavier University – Ateneo de Cagayan. Students submit reservation requests; library staff approve or reject them; an administrator manages accounts. There is no server or database: everything persists in the browser through `localStorage` (and the current session in `sessionStorage`).
+Students, staff, and administrators use **MongoDB Atlas** for accounts. The static site can run on **Netlify** with **serverless functions** (`netlify/functions/`) for login, registration, user list, and first-admin setup. **Environment variables and GitHub deploy steps:** see [`ENV_SETUP.md`](./ENV_SETUP.md).
 
-Use a local HTTP URL (for example VS Code Live Server) so testers share one origin and one copy of the data.
+For local development, run the Express API from the `js` folder (`js/.env.example` → `js/.env`) and open the HTML over **http://localhost** or Live Server.
 
 ---
 

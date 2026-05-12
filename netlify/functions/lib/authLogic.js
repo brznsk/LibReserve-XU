@@ -160,6 +160,55 @@ async function registerAction(body) {
   return { statusCode: 201, json: sessionPayload(newUser, "student", "student") };
 }
 
+async function adminSetupAction(body) {
+  const adminCount = await User.countDocuments({ type: "admin" });
+  if (adminCount > 0) {
+    return {
+      statusCode: 403,
+      json: { message: "An administrator already exists. Sign in from the login page." },
+    };
+  }
+
+  const { fname, lname, email, password, type } = body || {};
+  if (type !== "admin") {
+    return { statusCode: 400, json: { message: "Invalid account type." } };
+  }
+  const emailLower = String(email || "")
+    .trim()
+    .toLowerCase();
+  if (!emailLower || !/^[^\s@]+@xu\.edu\.ph$/i.test(emailLower)) {
+    return {
+      statusCode: 400,
+      json: { message: "Administrator email must be your official @xu.edu.ph address." },
+    };
+  }
+  if (!String(fname || "").trim() || !String(lname || "").trim() || !password) {
+    return {
+      statusCode: 400,
+      json: { message: "Please fill in all required fields." },
+    };
+  }
+
+  const existingUser = await User.findOne({ email: emailLower }).collation({
+    locale: "en",
+    strength: 2,
+  });
+  if (existingUser) {
+    return { statusCode: 400, json: { message: "That email is already registered." } };
+  }
+
+  const hashed = await bcrypt.hash(password, 10);
+  await User.create({
+    fname: String(fname).trim(),
+    lname: String(lname).trim(),
+    email: emailLower,
+    password: hashed,
+    type: "admin",
+  });
+
+  return { statusCode: 201, json: { message: "Administrator created successfully." } };
+}
+
 async function usersAction() {
   const users = await User.find({}, "-password");
   return { statusCode: 200, json: users };
@@ -173,5 +222,6 @@ async function withDb(fn) {
 module.exports = {
   loginAction: (body) => withDb(() => loginAction(body)),
   registerAction: (body) => withDb(() => registerAction(body)),
+  adminSetupAction: (body) => withDb(() => adminSetupAction(body)),
   usersAction: () => withDb(() => usersAction()),
 };

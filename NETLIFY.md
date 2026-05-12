@@ -1,5 +1,7 @@
 # Deploy LibReserve on Netlify
 
+**Full environment checklist (GitHub, secrets, Atlas): see [`ENV_SETUP.md`](./ENV_SETUP.md).**
+
 The static HTML/CSS/JS is published from the repo root. Auth calls go to **Netlify Functions** at `/.netlify/functions/{login,register,users}`, which use the same MongoDB logic as `js/server.js`.
 
 ## 1. Environment variable
@@ -29,7 +31,7 @@ If the site is served at something other than `*.netlify.app`, open **`js/xu-api
 
 ## 5. AdminInit / `admin-setup`
 
-`AdminInit.html` calls `/admin-setup`, which is **not** implemented in these functions. Create the first admin in MongoDB (Atlas UI or Compass) or run the Express server once with a setup route if you add it later.
+`AdminInit.html` calls **`/.netlify/functions/admin-setup`** (same as `POST /api/admin-setup` locally). It only succeeds when **no** `type: "admin"` user exists yet. After the first admin exists, use **Log in** with the Administrator tile.
 
 ## 6. Quick test after deploy
 

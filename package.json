@@ -1,7 +1,14 @@
 {
   "name": "libreserve",
   "private": true,
-  "description": "Netlify Functions deps (MongoDB auth API). Local Express API still uses js/package.json.",
+  "description": "Netlify Functions deps (MongoDB). Local Express API: cd js && npm install",
+  "scripts": {
+    "build": "echo LibReserve: static site + Netlify Functions; no web bundle to build.",
+    "postinstall": "echo Dependencies ready for Netlify Functions."
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "mongoose": "^7.0.0"
